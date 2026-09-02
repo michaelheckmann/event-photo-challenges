@@ -1,0 +1,42 @@
+name: Build photo archive
+
+on:
+  # schedule:
+  #   - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even when there are no pending photo changes
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: photo-archive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v6
+        with:
+          cache: pnpm
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm photo-archive:build
+        env:
+          FORCE_REBUILD: ${{ inputs.force || 'false' }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_DERIVATIVES_BUCKET: ${{ vars.R2_DERIVATIVES_BUCKET }}
+          R2_PHOTOS_BUCKET: ${{ vars.R2_PHOTOS_BUCKET }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
