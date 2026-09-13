@@ -24,7 +24,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useReward } from "react-rewards";
+import { playEmojiRain } from "@/lib/emoji-rain";
 import { useWebHaptics } from "web-haptics/react";
 import type { PhotoListItem } from "../../shared/photos";
 import { useI18nContext } from "../i18n/i18n-react";
@@ -296,6 +296,7 @@ const ChallengeCard = ({
 // --- View ---
 
 export const ChallengesView = () => {
+  const rainRef = useRef<HTMLSpanElement>(null);
   const { trigger } = useWebHaptics();
   const { LL, locale } = useI18nContext();
   const userId = useAppState((s) => s.userId);
@@ -326,31 +327,13 @@ export const ChallengesView = () => {
     () => new Map((data?.challenges ?? []).map((c) => [c.id, c] as const)),
     [data],
   );
-  const rewardConfig = useMemo(
-    () => ({
-      angle: 270,
-      decay: 0.91,
-      elementCount: 52,
-      elementSize: 36,
-      emoji: rewardedChallenge
-        ? Array.from(
-            photoChallenges.find(
-              (challenge) => challenge.id === rewardedChallenge.id,
-            )?.rewardEmojis ?? ["💛", "✨", "📸"],
-          )
-        : ["💛", "✨", "📸"],
-      lifetime: 100,
-      spread: 280,
-      startVelocity: 20,
-      zIndex: 50,
-    }),
-    [rewardedChallenge],
-  );
-  const { reward } = useReward("challenge-reward-rain", "emoji", rewardConfig);
-
   useEffect(() => {
-    if (rewardedChallenge) reward();
-  }, [reward, rewardedChallenge]);
+    if (!rewardedChallenge || !rainRef.current) return;
+    const emojis = photoChallenges.find(
+      (challenge) => challenge.id === rewardedChallenge.id,
+    )?.rewardEmojis ?? ["💛", "✨", "📸"];
+    return playEmojiRain(rainRef.current, emojis);
+  }, [rewardedChallenge]);
 
   const openFilePicker = (challenge: Challenge) => {
     if (isUploading) return;
@@ -429,7 +412,7 @@ export const ChallengesView = () => {
       />
 
       <span
-        id="challenge-reward-rain"
+        ref={rainRef}
         className="pointer-events-none fixed left-1/2 -top-28 z-50 size-0"
         aria-hidden="true"
       />
